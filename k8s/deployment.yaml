@@ -1,33 +1,3 @@
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: heapdump-pv
-  labels:
-    app: memory-hog  # Label for grouping resources
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteMany
-  hostPath:
-    # To mount volumes using Kubernetes on Docker Desktop for Windows the path will be
-    path: /run/desktop/mnt/host/d/heapdump
-    # Automatically creates the directory
-    type: DirectoryOrCreate
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: heapdump-pvc
-  labels:
-    app: memory-hog  # Label for grouping resources
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 1Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -50,10 +20,10 @@ spec:
           imagePullPolicy: Never  # Prevent pulling the image from a registry
           env:
             - name: JAVA_OPTS
-              value: "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/heapdumps"
+              value: "-Xmx128m -Xms128m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/heapdumps"
           resources:
             limits:
-              memory: "128Mi"  # Set a low memory limit to trigger OOMKilled
+              memory: "256Mi"  # Set a low memory limit to trigger OOMKilled
           ports:
             - containerPort: 8080  # Expose the application on port 8080
           volumeMounts:
@@ -61,8 +31,10 @@ spec:
               mountPath: /heapdumps
       volumes:
         - name: heapdump-volume
-          persistentVolumeClaim:
-            claimName: heapdump-pvc
+          hostPath:
+            # To mount volumes using Kubernetes on Docker Desktop for Windows the path will be
+            path: /run/desktop/mnt/host/d/myvolume
+            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: Service
