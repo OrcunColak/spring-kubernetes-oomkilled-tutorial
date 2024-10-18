@@ -18,5 +18,11 @@ public class MemoryHogController {
         memoryHog.add(new byte[50 * 1024 * 1024]);
         return "Allocated 50 MB of memory! Current list size: " + memoryHog.size();
     }
+
+    // http://localhost:8080/test
+    @GetMapping("/test")
+    public String test() {
+        return "test";
+    }
 }
 

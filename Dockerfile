@@ -11,4 +11,4 @@ COPY target/spring-kubernetes-oomkilled-tutorial.jar /app/spring-kubernetes-oomk
 EXPOSE 8080
 
 # Run the Spring Boot application
-CMD ["java", "-jar", "/app/spring-kubernetes-oomkilled-tutorial.jar"]
+CMD ["sh", "-c", "java $JAVA_OPTS -jar /app/spring-kubernetes-oomkilled-tutorial.jar"]

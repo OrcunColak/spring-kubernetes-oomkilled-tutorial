@@ -1,7 +1,39 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: heapdump-pv
+  labels:
+    app: memory-hog  # Label for grouping resources
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    # To mount volumes using Kubernetes on Docker Desktop for Windows the path will be
+    path: /run/desktop/mnt/host/d/heapdump
+    # Automatically creates the directory
+    type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: heapdump-pvc
+  labels:
+    app: memory-hog  # Label for grouping resources
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: memory-hog-deployment
+  labels:
+    app: memory-hog  # Label for grouping resources
 spec:
   replicas: 1
   selector:
@@ -16,16 +48,28 @@ spec:
         - name: spring-kubernetes-oomkilled
           image: spring-kubernetes-oomkilled-tutorial:latest  # Local image name
           imagePullPolicy: Never  # Prevent pulling the image from a registry
+          env:
+            - name: JAVA_OPTS
+              value: "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/heapdumps"
           resources:
             limits:
               memory: "128Mi"  # Set a low memory limit to trigger OOMKilled
           ports:
             - containerPort: 8080  # Expose the application on port 8080
+          volumeMounts:
+            - name: heapdump-volume
+              mountPath: /heapdumps
+      volumes:
+        - name: heapdump-volume
+          persistentVolumeClaim:
+            claimName: heapdump-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: memory-hog-service
+  labels:
+    app: memory-hog  # Label for grouping resources
 spec:
   selector:
     app: memory-hog
@@ -33,4 +77,4 @@ spec:
     - protocol: TCP
       port: 8080  # The port that the service will expose
       targetPort: 8080  # The port the container listens on
-  type: ClusterIP  # Default service type
+  type: LoadBalancer # type of the service. LoadBalancer indicates that our service will be external.
